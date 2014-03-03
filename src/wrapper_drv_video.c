@@ -476,13 +476,15 @@ vawr_CreateContext(VADriverContextP ctx,
 				vaStatus = vawr->drv_vtable[0]->vaUnmapBuffer(ctx, image.buf);
 			}
 		}
-	} else {
-		/* copy the render_targets list into vawr_render_targets for other profile */
-	    memcpy(vawr_render_targets, render_targets, (num_render_targets * sizeof(render_targets)));
 	}
 
 	RESTORE_DRVDATA(ctx, vawr);
-    CALL_DRVVTABLE(vawr, vaStatus, vaCreateContext(ctx, config_id, picture_width, picture_height, flag, vawr_render_targets, num_render_targets, context));
+    if (vawr->profile == VAProfileVP8Version0_3) {
+        CALL_DRVVTABLE(vawr, vaStatus, vaCreateContext(ctx, config_id, picture_width, picture_height, flag, vawr_render_targets, num_render_targets, context));
+    } else {
+        CALL_DRVVTABLE(vawr, vaStatus, vaCreateContext(ctx, config_id, picture_width, picture_height, flag, render_targets, num_render_targets, context));
+    }
+
     RESTORE_VAWRDATA(ctx, vawr);
 
 	return vaStatus;
