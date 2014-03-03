@@ -418,37 +418,12 @@ vawr_CreateContext(VADriverContextP ctx,
 					vaStatus = VA_STATUS_ERROR_OPERATION_FAILED;
 					if (vawr->drv_vtable[1]->vaCreateSurfaces2) {
 						VASurfaceID	surface_id;
-						VASurfaceAttrib attrib_list[2] = {};
-						VASurfaceAttribExternalBuffers *buffer_descriptor = NULL;
-
-						buffer_descriptor = calloc(1, sizeof(*buffer_descriptor));
-						if (!buffer_descriptor) {
-							return VA_STATUS_ERROR_ALLOCATION_FAILED;
-						}
-
-						buffer_descriptor->num_buffers = 1;
-						buffer_descriptor->width = image.width;
-						buffer_descriptor->height = image.height;
-						//buffer_descriptor->pixel_format = image.format.fourcc; /* format will be used instead of pixel_format */
-						//buffer_descriptor->data_size =
-						buffer_descriptor->pitches[0] = image.pitches[0];
-						buffer_descriptor->pitches[1] = image.pitches[1];
-						buffer_descriptor->pitches[2] = image.pitches[1];
-						buffer_descriptor->offsets[0] = image.offsets[0];
-						buffer_descriptor->offsets[1] = image.offsets[1];
-						buffer_descriptor->offsets[2] = image.offsets[1];
-						buffer_descriptor->buffers = (void *)&user_pointer;
 
 						ctx->pDriverData = vawr->drv_data[1];
 
-						attrib_list[0].type = VASurfaceAttribExternalBufferDescriptor;
-						attrib_list[0].value.value.p = buffer_descriptor;
-
-						attrib_list[1].type = VASurfaceAttribMemoryType;
-						attrib_list[1].value.value.i = VA_SURFACE_ATTRIB_MEM_TYPE_USER_PTR;
-
 						vaStatus = vawr->drv_vtable[1]->vaCreateSurfaces2(ctx, VA_RT_FORMAT_YUV420, image.width,
-										((image.height + 32 - 1) & ~(32 - 1)), &surface_id, 1, &attrib_list[0], 2);
+										((image.height + 32 - 1) & ~(32 - 1)), &surface_id, 1, NULL, 1);
+
 						if (vaStatus == VA_STATUS_SUCCESS){
 							/* Find a way to store the returned surface_id with correct mapping of i965's surface_id,
 							 * since all future surface_id communicated between application and wrappre is i965's
@@ -465,8 +440,6 @@ vawr_CreateContext(VADriverContextP ctx,
 
 							/* render_targets is pvr's surface_id from here on */
 							vawr_render_targets[i] = surface_id;
-							/* Free allocated memory */
-							free(buffer_descriptor);
 						}
 					}
 				}
