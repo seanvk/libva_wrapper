@@ -326,6 +326,7 @@ vawr_CreateSurfaces(VADriverContextP ctx,
 {
     VAStatus vaStatus;
     struct vawr_driver_data *vawr = GET_VAWRDATA(ctx);
+    unsigned int h_stride = 0, v_stride = 0;
 
     /* We will always call i965's vaCreateSurfaces for VA Surface allocation,
      * then if the config profile is VP8 we will map the surface into TTM
@@ -334,19 +335,45 @@ vawr_CreateSurfaces(VADriverContextP ctx,
     /* let's try to create non-tiling surfaces */
     if (vawr->profile == VAProfileVP8Version0_3) {
         int i=0;
-        VASurfaceAttrib surface_attrib[2];
+        VASurfaceAttrib surface_attrib[4];
         surface_attrib[i].type = VASurfaceAttribUsageHint;
         surface_attrib[i].flags = VA_SURFACE_ATTRIB_SETTABLE;
         surface_attrib[i].value.type = VAGenericValueTypeInteger;
         surface_attrib[i].value.value.i = VA_SURFACE_ATTRIB_USAGE_FORCE_TILING_NONE;
-
         i++;
+
         surface_attrib[i].type = VASurfaceAttribPixelFormat;
         surface_attrib[i].flags = VA_SURFACE_ATTRIB_SETTABLE;
         surface_attrib[i].value.type = VAGenericValueTypeInteger;
         surface_attrib[i].value.value.i = VA_FOURCC_NV12;
+        i++;
 
-        vaStatus = vawr->drv_vtable[0]->vaCreateSurfaces2(ctx, format, width, height, surfaces, num_surfaces, &surface_attrib, 2);
+        if (512 >= width)
+            h_stride = 512;
+        else if (1024 >= width)
+            h_stride = 1024;
+        else if (1280 >= width)
+            h_stride = 1280;
+        else if (2048 >= width)
+            h_stride = 2048;
+        else if (4096 >= width)
+            h_stride = 4096;
+        else
+            assert(0);
+        surface_attrib[i].type = VASurfaceAttribHorizontalStride;
+        surface_attrib[i].flags = VA_SURFACE_ATTRIB_SETTABLE;
+        surface_attrib[i].value.type = VAGenericValueTypeInteger;
+        surface_attrib[i].value.value.i = h_stride;
+        i++;
+
+        v_stride = ALIGN(height, 32);
+        surface_attrib[i].type = VASurfaceAttribVerticalStride;
+        surface_attrib[i].flags = VA_SURFACE_ATTRIB_SETTABLE;
+        surface_attrib[i].value.type = VAGenericValueTypeInteger;
+        surface_attrib[i].value.value.i = v_stride;
+        i++;
+
+        vaStatus = vawr->drv_vtable[0]->vaCreateSurfaces2(ctx, format, width, height, surfaces, num_surfaces, &surface_attrib, i);
     } else {
         vaStatus = vawr->drv_vtable[0]->vaCreateSurfaces(ctx, width, height, format, num_surfaces, surfaces);
     }

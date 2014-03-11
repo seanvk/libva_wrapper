@@ -39,6 +39,7 @@
 
 #define I965_DRV	0
 #define PSB_DRV		1
+#define ALIGN(i, n)    (((i) + (n) - 1) & ~((n) - 1))
 
 #define GET_VAWRDATA(ctx)    ctx->pDriverData
 #define RESTORE_VAWRDATA(ctx, vawr)	ctx->pDriverData = vawr
