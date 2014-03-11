@@ -405,12 +405,13 @@ vawr_CreateContext(VADriverContextP ctx,
 
 			vaStatus = vawr->drv_vtable[0]->vaDeriveImage(ctx, render_targets[i], &image);
 			if (vaStatus == VA_STATUS_SUCCESS) {
-			    void *user_pointer = NULL;
+			    unsigned long long *user_pointer = NULL;
 
 			    /* VAImage has been created successfully, now call i965's vaMapBuffer to
 			     * retrieve the user accessible pointer to the surface
 			     */
 				vaStatus = vawr->drv_vtable[0]->vaMapBuffer(ctx, image.buf, (void **) &user_pointer);
+				vawr_errorMessage("CreateContext: user ptr: %p:, addr: %p\n", user_pointer, &user_pointer);
 				if (vaStatus == VA_STATUS_SUCCESS) {
 					/* TODO: We have to pass the user pointer to pvr's vaCreateSurfaces2
 					 * to map this VASurface into pvr's TTM
@@ -437,7 +438,7 @@ vawr_CreateContext(VADriverContextP ctx,
 						buffer_descriptor->offsets[0] = image.offsets[0];
 						buffer_descriptor->offsets[1] = image.offsets[1];
 						buffer_descriptor->offsets[2] = image.offsets[1];
-						buffer_descriptor->buffers = (void *)&user_pointer;
+						buffer_descriptor->buffers = (unsigned long long *)&user_pointer;
 
 						ctx->pDriverData = vawr->drv_data[1];
 
