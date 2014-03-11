@@ -406,7 +406,7 @@ vawr_CreateContext(VADriverContextP ctx,
     VAStatus vaStatus;
     VASurfaceID vawr_render_targets[num_render_targets];
     struct vawr_driver_data *vawr = GET_VAWRDATA(ctx);
-    int i;
+    int i, j;
 
     /* If config profile is VP8, we have to map the render targets into pvr driver's TTM
      * Since config_id is opague to wrapper (at least for now), we can only check vawr->profile
@@ -430,8 +430,14 @@ vawr_CreateContext(VADriverContextP ctx,
 			     */
 				vaStatus = vawr->drv_vtable[0]->vaMapBuffer(ctx, image.buf, (void **) &user_pointer);
 				if (vaStatus == VA_STATUS_SUCCESS) {
+					unsigned char *tmp_ptr = user_pointer;
 					/* make sure pages of the buffer are really mapped to user space */
 					memset (user_pointer, 0x40, image.data_size);
+					for (j=1; j<image.data_size/1024; j++) {
+						if (tmp_ptr[j*1024]+tmp_ptr[(j-1)*1024] != 0x80)
+							fprintf(stderr, "surface data error before import it to psb\n");
+					}
+
 					/* TODO: We have to pass the user pointer to pvr's vaCreateSurfaces2
 					 * to map this VASurface into pvr's TTM
 					 */
