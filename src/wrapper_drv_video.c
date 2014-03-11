@@ -430,6 +430,8 @@ vawr_CreateContext(VADriverContextP ctx,
 			     */
 				vaStatus = vawr->drv_vtable[0]->vaMapBuffer(ctx, image.buf, (void **) &user_pointer);
 				if (vaStatus == VA_STATUS_SUCCESS) {
+					/* make sure pages of the buffer are really mapped to user space */
+					memset (user_pointer, 0x40, image.data_size);
 					/* TODO: We have to pass the user pointer to pvr's vaCreateSurfaces2
 					 * to map this VASurface into pvr's TTM
 					 */
