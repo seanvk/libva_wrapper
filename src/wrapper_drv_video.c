@@ -389,13 +389,13 @@ vawr_DestroySurfaces(VADriverContextP ctx,
 {
     VAStatus vaStatus;
     struct vawr_driver_data *vawr = GET_VAWRDATA(ctx);
-    vawr_surface_lookup_t *surface;
+    vawr_surface_lookup_t *surface, *temp;
     int i;
 
 	if (vawr->profile == VAProfileVP8Version0_3) {
 		/* First destroy the PVR surfaces */
 		for (i=0; i<num_surfaces; i++) {
-			LIST_FOR_EACH_ENTRY(surface, &vawr->surfaces, link) {
+			LIST_FOR_EACH_ENTRY_SAFE(surface, temp, &vawr->surfaces, link) {
 				if (surface->i965_surface == surface_list[i]) {
 					/* Restore the PVR's context for DestroySurfaces purpose */
 					ctx->pDriverData = vawr->drv_data[1];
