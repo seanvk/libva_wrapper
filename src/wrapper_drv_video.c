@@ -348,26 +348,23 @@ vawr_DestroySurfaces(VADriverContextP ctx,
     int i;
 
 	if (vawr->profile == VAProfileVP8Version0_3) {
+		/* First destroy the PVR surfaces */
 		for (i=0; i<num_surfaces; i++) {
 			LIST_FOR_EACH_ENTRY(surface, &vawr->surfaces, link) {
 				if (surface->i965_surface == surface_list[i]) {
-					/* Restore the i965's surface id for DestroySurfaces purpose */
-					//surface_list[i] = surface->i965_surface;
-					/* Destroy the corresponding surface in PVR,
-					 * I am not sure the impact of PVR's
-					 * DestroySurface on an imported surface yet
-					 */
-					vawr->drv_vtable[1]->vaDestroySurfaces(ctx, &surface->pvr_surface, 1); /* Alternatively, build an array and call DestroySurface once */
+					/* Restore the PVR's context for DestroySurfaces purpose */
+					ctx->pDriverData = vawr->drv_data[1];
+					vaStatus = vawr->drv_vtable[1]->vaDestroySurfaces(ctx, &surface->pvr_surface, 1);
 					surface->i965_surface = 0;
 					surface->pvr_surface = 0;
 					LIST_DEL(&surface->link);
-					free(surface);
 				}
 			}
 
 		}
 	}
 
+	/* Now destroy the i965 surfaces */
     ctx->pDriverData = vawr->drv_data[0];
 	vaStatus = vawr->drv_vtable[0]->vaDestroySurfaces(ctx, surface_list, num_surfaces);
     RESTORE_VAWRDATA(ctx, vawr);
