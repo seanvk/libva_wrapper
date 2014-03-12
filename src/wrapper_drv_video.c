@@ -331,7 +331,24 @@ vawr_CreateSurfaces(VADriverContextP ctx,
      * then if the config profile is VP8 we will map the surface into TTM
      */
     ctx->pDriverData = vawr->drv_data[0];
-    vaStatus = vawr->drv_vtable[0]->vaCreateSurfaces(ctx, width, height, format, num_surfaces, surfaces);
+    if (vawr->profile == VAProfileVP8Version0_3) {
+        /* create psb drv compatible surfaces */
+        VASurfaceAttrib surface_attrib;
+        surface_attrib.type = VASurfaceAttribPixelFormat;
+        surface_attrib.flags = VA_SURFACE_ATTRIB_SETTABLE;
+        surface_attrib.value.type = VAGenericValueTypeInteger;
+        surface_attrib.value.value.i = VA_FOURCC_NV12;
+
+        if (setenv("I965_SURFACE_PSB_COMPAT", "1", 1)) {
+            vawr_errorMessage("fail to setup env for creating psb compatile surface\n");
+        }
+        vaStatus = vawr->drv_vtable[0]->vaCreateSurfaces2(ctx, format, width, height, surfaces, num_surfaces, &surface_attrib, 1);
+        if (unsetenv("I965_SURFACE_PSB_COMPAT")) {
+            vawr_errorMessage("fail to unset env for creating psb compatile surface\n");
+        }
+    } else {
+        vaStatus = vawr->drv_vtable[0]->vaCreateSurfaces(ctx, width, height, format, num_surfaces, surfaces);
+    }
     RESTORE_VAWRDATA(ctx, vawr);
 
 	return vaStatus;
@@ -344,13 +361,13 @@ vawr_DestroySurfaces(VADriverContextP ctx,
 {
     VAStatus vaStatus;
     struct vawr_driver_data *vawr = GET_VAWRDATA(ctx);
-    vawr_surface_lookup_t *surface;
+    vawr_surface_lookup_t *surface, *temp;
     int i;
 
 	if (vawr->profile == VAProfileVP8Version0_3) {
 		/* First destroy the PVR surfaces */
 		for (i=0; i<num_surfaces; i++) {
-			LIST_FOR_EACH_ENTRY(surface, &vawr->surfaces, link) {
+			LIST_FOR_EACH_ENTRY_SAFE(surface, temp, &vawr->surfaces, link) {
 				if (surface->i965_surface == surface_list[i]) {
 					/* Restore the PVR's context for DestroySurfaces purpose */
 					ctx->pDriverData = vawr->drv_data[1];
