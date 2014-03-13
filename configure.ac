@@ -1,7 +1,7 @@
 # intel-driver package version number
 m4_define([libva_wrapper_major_version], [1])
 m4_define([libva_wrapper_minor_version], [0])
-m4_define([libva_wrapper_micro_version], [20])
+m4_define([libva_wrapper_micro_version], [22])
 m4_define([libva_wrapper_pre_version],   [0])
 m4_define([libva_wrapper_version],
           [libva_wrapper_major_version.libva_wrapper_minor_version.libva_wrapper_micro_version])
