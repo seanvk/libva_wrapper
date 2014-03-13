@@ -36,6 +36,7 @@
 #include <stdarg.h>
 #include <stdio.h>
 #include <assert.h>
+#define ALIGN(i, n)    (((i) + (n) - 1) & ~((n) - 1))
 
 #define DRIVER_EXTENSION	"_drv_video.so"
 
@@ -326,14 +327,56 @@ vawr_CreateSurfaces(VADriverContextP ctx,
 {
     VAStatus vaStatus;
     struct vawr_driver_data *vawr = GET_VAWRDATA(ctx);
+    unsigned int h_stride = 0, v_stride = 0;
 
     /* We will always call i965's vaCreateSurfaces for VA Surface allocation,
      * then if the config profile is VP8 we will map the surface into TTM
      */
     ctx->pDriverData = vawr->drv_data[0];
-    vaStatus = vawr->drv_vtable[0]->vaCreateSurfaces(ctx, width, height, format, num_surfaces, surfaces);
-    RESTORE_VAWRDATA(ctx, vawr);
 
+    // XXX, assume we have already got correct profile (vaCreateConfig is called before vaCreateSurface)
+    if (vawr->profile == VAProfileVP8Version0_3) {
+        VASurfaceAttrib surface_attrib[2];
+        VASurfaceAttribExternalBuffers buffer_attrib;
+        int i=0;
+
+        surface_attrib[i].type = VASurfaceAttribMemoryType;
+        surface_attrib[i].flags = VA_SURFACE_ATTRIB_SETTABLE;
+        surface_attrib[i].value.type = VAGenericValueTypeInteger;
+        surface_attrib[i].value.value.i = VA_SURFACE_ATTRIB_MEM_TYPE_VA;
+        i++;
+
+        /* Calculate stride to meet psb requirement */
+        if (512 >= width)
+            h_stride = 512;
+        else if (1024 >= width)
+            h_stride = 1024;
+        else if (1280 >= width)
+            h_stride = 1280;
+        else if (2048 >= width)
+            h_stride = 2048;
+        else if (4096 >= width)
+            h_stride = 4096;
+        else
+            assert(0);
+        v_stride = ALIGN(height, 32);
+        buffer_attrib.width = h_stride;
+        buffer_attrib.height= v_stride;
+        buffer_attrib.flags = 0; // tiling is diabled by default
+        buffer_attrib.pixel_format = VA_FOURCC_NV12;
+
+        surface_attrib[i].type = VASurfaceAttribExternalBufferDescriptor;
+        surface_attrib[i].flags = VA_SURFACE_ATTRIB_SETTABLE;
+        surface_attrib[i].value.type = VAGenericValueTypePointer;
+        surface_attrib[i].value.value.p = &buffer_attrib;
+        i++;
+
+        vaStatus = vawr->drv_vtable[0]->vaCreateSurfaces2(ctx, format, width, height, surfaces, num_surfaces, &surface_attrib[0], i);
+     } else {
+        vaStatus = vawr->drv_vtable[0]->vaCreateSurfaces(ctx, width, height, format, num_surfaces, surfaces);
+     }
+
+    RESTORE_VAWRDATA(ctx, vawr);
 	return vaStatus;
 }
 
