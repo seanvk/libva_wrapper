@@ -74,25 +74,24 @@ static VAStatus vawr_openDriver(VADriverContextP ctx, char *driver_name)
     char *driver_dir = "/usr/lib64/va/drivers/";
     void *handle = NULL;
 
-    char *driver_path = (char *) malloc( strlen(driver_dir) +
+    char *driver_path = (char *) calloc(1, strlen(driver_dir) +
                                          strlen(driver_name) +
-                                         strlen(DRIVER_EXTENSION) + 2 );
+                                         strlen(DRIVER_EXTENSION) + 1 );
     if (!driver_path) {
         vawr_errorMessage("%s L%d Out of memory!n",
                             __FUNCTION__, __LINE__);
         return VA_STATUS_ERROR_ALLOCATION_FAILED;
     }
 
-    strncpy( driver_path, driver_dir, strlen(driver_dir) + 1);
-    strncat( driver_path, "/", strlen("/") );
+    strncpy( driver_path, driver_dir, strlen(driver_dir) );
     strncat( driver_path, driver_name, strlen(driver_name) );
     strncat( driver_path, DRIVER_EXTENSION, strlen(DRIVER_EXTENSION) );
 
     handle = dlopen( driver_path, RTLD_NOW| RTLD_GLOBAL);
     if (!handle) {
-        /* Don't give errors for non-existing files */
-        if (0 == access( driver_path, F_OK))
-            vawr_errorMessage("dlopen of %s failed: %s\n", driver_path, dlerror());
+        /* Manage error if the file exists or not we need to know what's going
+	 * on */
+        vawr_errorMessage("dlopen of %s failed: %s\n", driver_path, dlerror());
     } else {
         VADriverInit init_func = NULL;
         char init_func_s[256];
@@ -123,19 +122,18 @@ static VAStatus vawr_openDriver(VADriverContextP ctx, char *driver_name)
         if (compatible_versions[i].major < 0) {
             vawr_errorMessage("%s has no function %s\n",
                             driver_path, init_func_s);
-            dlclose(handle);
         } else {
             if (init_func)
                 vaStatus = (*init_func)(ctx);
 		if (VA_STATUS_SUCCESS != vaStatus) {
 			vawr_errorMessage("%s init failed\n", driver_path);
-			dlclose(handle);
 		} else {
 			/* TODO: Store the handle to a private structure */
 		}
         }
     }
     free(driver_path);
+    driver_path=NULL;
     return vaStatus;
 }
 
