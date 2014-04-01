@@ -587,6 +587,23 @@ vawr_BufferSetNumElements(VADriverContextP ctx,
 }
 
 VAStatus
+vawr_BufferInfo(VADriverContextP ctx,
+    VABufferID buf_id,          /* in */
+    VABufferType *type,         /* out */
+    unsigned int *size,         /* out */
+    unsigned int *num_elements) /* out */
+{
+    VAStatus vaStatus;
+    struct vawr_driver_data *vawr = GET_VAWRDATA(ctx);
+
+    RESTORE_DRVDATA(ctx, vawr);
+    CALL_DRVVTABLE(vawr, vaStatus, vaBufferInfo(ctx, buf_id, type, size, num_elements));
+    RESTORE_VAWRDATA(ctx, vawr);
+
+    return vaStatus;
+}
+
+VAStatus
 vawr_MapBuffer(VADriverContextP ctx,
                VABufferID buf_id,       /* in */
                void **pbuf)             /* out */
@@ -1135,6 +1152,7 @@ __vaDriverInit_0_32(  VADriverContextP ctx )
         vtable->vaDestroyContext = vawr_DestroyContext;
         vtable->vaCreateBuffer = vawr_CreateBuffer;
         vtable->vaBufferSetNumElements = vawr_BufferSetNumElements;
+        vtable->vaBufferInfo = vawr_BufferInfo;
         vtable->vaMapBuffer = vawr_MapBuffer;
         vtable->vaUnmapBuffer = vawr_UnmapBuffer;
         vtable->vaDestroyBuffer = vawr_DestroyBuffer;
