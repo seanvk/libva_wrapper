@@ -1091,6 +1091,50 @@ vawr_SetDisplayAttributes(VADriverContextP ctx,
 
 }
 
+VAStatus vawr_LockSurface(VADriverContextP ctx,
+    VASurfaceID surface,
+    unsigned int *fourcc, /* following are output argument */
+    unsigned int *luma_stride,
+    unsigned int *chroma_u_stride,
+    unsigned int *chroma_v_stride,
+    unsigned int *luma_offset,
+    unsigned int *chroma_u_offset,
+    unsigned int *chroma_v_offset,
+    unsigned int *buffer_name,
+    void **buffer)
+{
+    VAStatus vaStatus;
+    struct vawr_driver_data *vawr = GET_VAWRDATA(ctx);
+    VASurfaceID vawr_render_target;
+    vawr_surface_lookup_t *surface_lookup;
+
+    GET_SURFACEID(vawr, surface_lookup, surface, vawr_render_target);
+
+    RESTORE_DRVDATA(ctx, vawr);
+    CALL_DRVVTABLE(vawr, vaStatus, vaLockSurface(ctx, vawr_render_target, fourcc, luma_stride, chroma_u_stride, chroma_v_stride, luma_offset, chroma_u_offset, chroma_v_offset, buffer_name, buffer));
+    RESTORE_VAWRDATA(ctx, vawr);
+
+    return vaStatus;
+}
+
+
+VAStatus vawr_UnlockSurface(VADriverContextP ctx,
+    VASurfaceID surface)
+{
+    VAStatus vaStatus;
+    struct vawr_driver_data *vawr = GET_VAWRDATA(ctx);
+    VASurfaceID vawr_render_target;
+    vawr_surface_lookup_t *surface_lookup;
+
+    GET_SURFACEID(vawr, surface_lookup, surface, vawr_render_target);
+
+    RESTORE_DRVDATA(ctx, vawr);
+    CALL_DRVVTABLE(vawr, vaStatus, vaUnlockSurface( ctx, vawr_render_target));
+    RESTORE_VAWRDATA(ctx, vawr);
+
+    return vaStatus;
+}
+
 VAStatus DLL_EXPORT
 __vaDriverInit_0_32(VADriverContextP ctx);
 
@@ -1180,6 +1224,8 @@ __vaDriverInit_0_32(  VADriverContextP ctx )
         vtable->vaQueryDisplayAttributes = vawr_QueryDisplayAttributes;
         vtable->vaGetDisplayAttributes = vawr_GetDisplayAttributes;
         vtable->vaSetDisplayAttributes = vawr_SetDisplayAttributes;
+        vtable->vaLockSurface = vawr_LockSurface;
+        vtable->vaUnlockSurface= vawr_UnlockSurface;
     }
 
     /* Store wrapper's private driver data*/
