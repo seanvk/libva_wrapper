@@ -358,10 +358,16 @@ vawr_CreateSurfaces(VADriverContextP ctx,
         else
             assert(0);
         v_stride = ALIGN(height, 32);
-        buffer_attrib.width = h_stride;
-        buffer_attrib.height= v_stride;
-        buffer_attrib.flags = 0; // tiling is diabled by default
+        memset(&buffer_attrib, 0, sizeof(VASurfaceAttribExternalBuffers));
         buffer_attrib.pixel_format = VA_FOURCC_NV12;
+        buffer_attrib.width = width;
+        buffer_attrib.height= height;
+        buffer_attrib.num_planes = 2;
+        buffer_attrib.pitches[0] = h_stride;
+        buffer_attrib.pitches[1] = h_stride;
+        buffer_attrib.offsets[0] = 0;
+        buffer_attrib.offsets[1] = h_stride * v_stride;
+        buffer_attrib.flags = 0; // tiling is diabled by default
 
         surface_attrib[i].type = VASurfaceAttribExternalBufferDescriptor;
         surface_attrib[i].flags = VA_SURFACE_ATTRIB_SETTABLE;
